@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drive your AI Pilot to Success</title>
+<link href="https://fonts.googleapis.com/css2?family=Alata&family=Roboto+Slab:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue-primary: #5782bb;
+    --blue-light:   #7b9dca;
+    --blue-dark:    #40699f;
+    --blue-deep:    #2a4567;
+    --cream:        #fffeec;
+    --cream-warm:   #fff5d6;
+    --ink:          #111111;
+    --graphite:     #2a2a2a;
+    --sky-top:      #e8eef5;
+    --sky-mid:      #bcd0e4;
+    --sky-low:      #7b9dca;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: var(--sky-top);
+    color: var(--ink);
+    font-family: 'Roboto Slab', Georgia, serif;
+  }
+
+  .stage {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(180deg,
+      var(--sky-top) 0%,
+      #d4e2ee 40%,
+      var(--sky-mid) 75%,
+      var(--sky-low) 100%);
+    transition: background 0.8s ease;
+  }
+  .stage.summit-mode {
+    background: var(--sky-top);
+  }
+
+  /* ============================================================
+     TITLE SCENE (full-screen → shrinks to header)
+  ============================================================ */
+  .title-scene {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 10;
+    transition: all 1.2s cubic-bezier(.7,.1,.2,1);
+    padding: 40px;
+  }
+  .title-scene.shrunk {
+    top: 0;
+    bottom: auto;
+    padding: 22px 40px 18px;
+    background: linear-gradient(180deg, rgba(255, 254, 236, 0.92), rgba(255, 254, 236, 0.0));
+    backdrop-filter: blur(4px);
+  }
+  .title-eyebrow {
+    font-family: 'Roboto Slab', Georgia, serif;
+    font-size: clamp(11px, 1.1vw, 15px);
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--blue-dark);
+    opacity: 0;
+    animation: fadeIn 0.8s ease 0.2s forwards;
+    margin-bottom: 18px;
+  }
+  .title-scene.shrunk .title-eyebrow { display: none; }
+
+  .title-main {
+    font-family: 'Alata', sans-serif;
+    font-weight: 600;
+    font-size: clamp(36px, 7.2vw, 108px);
+    line-height: 0.98;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    transition: font-size 1.2s cubic-bezier(.7,.1,.2,1), letter-spacing 1.2s ease;
+  }
+  .title-scene.shrunk .title-main {
+    font-size: clamp(22px, 2.4vw, 32px);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--blue-dark);
+  }
+  .title-main .word {
+    display: inline-block;
+    white-space: nowrap;
+    margin-right: 0.22em;
+  }
+  .title-main .word:last-child { margin-right: 0; }
+  .title-main .ch {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(0.9em) rotateX(-70deg);
+    animation: letterDrop 0.75s cubic-bezier(.2,.9,.2,1.15) forwards;
+  }
+  .title-main .accent {
+    color: var(--blue-primary);
+    font-weight: 400;
+  }
+
+  .title-sub {
+    margin-top: 26px;
+    font-size: clamp(14px, 1.6vw, 22px);
+    font-weight: 400;
+    color: var(--graphite);
+    max-width: 780px;
+    opacity: 0;
+    animation: fadeIn 0.9s ease 1.9s forwards;
+  }
+  .title-scene.shrunk .title-sub { display: none; }
+
+  /* ============================================================
+     MOUNTAIN SCENE
+  ============================================================ */
+  .mountain-scene {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 1.2s ease 0.2s;
+    z-index: 2;
+  }
+  .mountain-scene.active { opacity: 1; }
+
+  .mountain-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transition: opacity 0.8s ease;
+  }
+  .stage.summit-mode .mountain-svg {
+    opacity: 0.18;
+  }
+
+  /* sun */
+  .sun {
+    position: absolute;
+    top: 12%;
+    right: 14%;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff5d6 0%, rgba(255, 245, 214, 0.5) 40%, rgba(255, 245, 214, 0) 70%);
+    z-index: 1;
+    opacity: 0;
+    animation: fadeIn 2s ease 1.5s forwards;
+  }
+
+  /* drifting clouds */
+  .cloud {
+    position: absolute;
+    background: rgba(255, 254, 236, 0.55);
+    border-radius: 50px;
+    filter: blur(1px);
+    z-index: 1;
+  }
+  .cloud::before,
+  .cloud::after {
+    content: '';
+    position: absolute;
+    background: rgba(255, 254, 236, 0.6);
+    border-radius: 999px;
+  }
+  /* Build each cloud from 3 stacked pill lobes */
+  .cloud::before {
+    width: 52%;
+    height: 120%;
+    left: 14%;
+    top: -58%;
+  }
+  .cloud::after {
+    width: 38%;
+    height: 95%;
+    right: 12%;
+    top: -36%;
+  }
+  .cloud-1 { top: 18%; left: -10%; width: 180px; height: 28px; animation: driftRight 60s linear infinite; }
+  .cloud-2 { top: 28%; left: -15%; width: 120px; height: 22px; animation: driftRight 75s linear infinite 15s; opacity: 0.7; }
+  .cloud-3 { top: 38%; left: -20%; width: 220px; height: 32px; animation: driftRight 90s linear infinite 30s; opacity: 0.6; }
+
+  @keyframes driftRight {
+    from { transform: translateX(0); }
+    to   { transform: translateX(130vw); }
+  }
+
+  /* milestone markers on the mountain */
+  .milestone {
+    position: absolute;
+    width: 46px;
+    height: 46px;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+  }
+  .milestone-dot {
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background: var(--cream);
+    border: 3px solid var(--blue-dark);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Roboto Slab', Georgia, serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--blue-dark);
+    transition: all 0.5s ease;
+  }
+  .milestone.active .milestone-dot {
+    background: var(--blue-primary);
+    color: var(--cream);
+    border-color: var(--cream);
+    transform: scale(1.3);
+    box-shadow: 0 0 0 8px rgba(87, 130, 187, 0.25), 0 6px 20px rgba(0,0,0,0.3);
+  }
+  .milestone.done .milestone-dot {
+    background: var(--blue-dark);
+    color: var(--cream);
+    border-color: var(--cream);
+  }
+  .milestone-pulse {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--blue-primary);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .milestone.active .milestone-pulse {
+    animation: pulseRing 1.6s ease-out infinite;
+  }
+  @keyframes pulseRing {
+    0%   { transform: scale(0.8); opacity: 0.8; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+
+  /* perched-bird indicator at each milestone */
+  .milestone-bird {
+    position: absolute;
+    top: -42px;
+    left: 50%;
+    transform: translateX(-50%) scaleX(-1);
+    width: 32px;
+    height: 32px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .milestone.perched .milestone-bird {
+    opacity: 1;
+    animation: perchBob 2s ease-in-out infinite;
+  }
+  @keyframes perchBob {
+    0%, 100% { transform: translateX(-50%) scaleX(-1) translateY(0); }
+    50%      { transform: translateX(-50%) scaleX(-1) translateY(-3px); }
+  }
+
+  /* journey path — dashed line connecting milestones */
+  .journey-path {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .journey-path path {
+    fill: none;
+    stroke: var(--cream);
+    stroke-width: 2.5;
+    stroke-dasharray: 6 10;
+    stroke-linecap: round;
+    opacity: 0.65;
+    filter: drop-shadow(0 0 4px rgba(0,0,0,0.2));
+  }
+
+  /* ============================================================
+     BIRDS (flying flock)
+  ============================================================ */
+  .bird-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 7;
+    pointer-events: none;
+  }
+  .bird {
+    position: absolute;
+    width: 54px;
+    height: 54px;
+    left: 0; top: 0;
+    transform-origin: 50% 50%;
+    will-change: transform;
+  }
+  .bird img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    animation: flap 0.35s ease-in-out infinite;
+    transform-origin: 50% 60%;
+    filter: drop-shadow(2px 4px 6px rgba(20, 35, 60, 0.3));
+  }
+  @keyframes flap {
+    0%, 100% { transform: scaleY(1) skewX(0deg); }
+    50%      { transform: scaleY(0.88) skewX(-3deg); }
+  }
+
+  /* ============================================================
+     MILESTONE CARD (bottom-anchored, updates per step)
+  ============================================================ */
+  .card-wrap {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(880px, 92vw);
+    z-index: 8;
+    pointer-events: none;
+  }
+  .card {
+    background: var(--cream);
+    border-radius: 16px;
+    padding: 20px 28px;
+    box-shadow: 0 18px 50px rgba(20, 35, 60, 0.28), 0 2px 6px rgba(0,0,0,0.08);
+    border: 1px solid rgba(64, 105, 159, 0.2);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.6s cubic-bezier(.2,.9,.2,1.1);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 22px;
+    align-items: center;
+  }
+  .card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .card-num {
+    font-family: 'Alata', sans-serif;
+    font-weight: 700;
+    font-size: 60px;
+    line-height: 1;
+    color: var(--blue-primary);
+    min-width: 78px;
+    text-align: center;
+    position: relative;
+  }
+  .card-num::after {
+    content: '';
+    position: absolute;
+    right: -12px;
+    top: 12%;
+    bottom: 12%;
+    width: 2px;
+    background: linear-gradient(180deg, transparent, var(--blue-light), transparent);
+  }
+  .card-body { }
+  .card-title {
+    font-family: 'Alata', sans-serif;
+    font-weight: 700;
+    font-size: clamp(22px, 2.6vw, 34px);
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .card-title .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--blue-primary);
+    margin: 0 12px 6px 0;
+    vertical-align: middle;
+  }
+  .card-detail {
+    font-size: clamp(14px, 1.4vw, 17px);
+    line-height: 1.55;
+    color: var(--graphite);
+    font-weight: 400;
+  }
+  .card-detail b {
+    color: var(--blue-dark);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  /* progress rail along top of mountain scene */
+  .progress {
+    position: absolute;
+    top: 82px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 8;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 92vw;
+  }
+  .progress.active { opacity: 1; }
+  .progress-step {
+    font-family: 'Roboto Slab', Georgia, serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: rgba(255, 254, 236, 0.5);
+    color: var(--blue-dark);
+    border: 1px solid rgba(64, 105, 159, 0.3);
+    transition: all 0.4s ease;
+    font-weight: 500;
+  }
+  .progress-step.done {
+    background: var(--blue-dark);
+    color: var(--cream);
+    border-color: var(--blue-dark);
+  }
+  .progress-step.current {
+    background: var(--blue-primary);
+    color: var(--cream);
+    border-color: var(--blue-primary);
+    box-shadow: 0 4px 14px rgba(87, 130, 187, 0.5);
+    transform: scale(1.05);
+  }
+
+  /* finale success banner */
+  .finale-banner {
+    position: absolute;
+    top: 28%;
+    left: 50%;
+    transform: translate(-50%, 20px);
+    text-align: center;
+    z-index: 9;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s ease, transform 1s cubic-bezier(.2,.9,.2,1.1);
+  }
+  .finale-banner.visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  .finale-banner .finale-text-box {
+    display: inline-block;
+    background: rgba(255, 254, 236, 0.96);
+    border: 1px solid rgba(64, 105, 159, 0.35);
+    border-radius: 20px;
+    padding: 18px 26px;
+    box-shadow: 0 10px 28px rgba(20, 35, 60, 0.2);
+  }
+  .finale-banner .badge {
+    display: inline-block;
+    font-family: 'Roboto Slab', Georgia, serif;
+    font-size: 12px;
+    letter-spacing: 0.4em;
+    color: var(--blue-dark);
+    padding: 6px 18px;
+    background: var(--cream);
+    border-radius: 999px;
+    border: 1px solid var(--blue-light);
+    margin-bottom: 16px;
+  }
+  .finale-banner h2 {
+    font-family: 'Alata', sans-serif;
+    font-weight: 700;
+    font-size: clamp(21px, 3vw, 44px);
+    color: var(--blue-dark);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    padding: 0 12px;
+  }
+  .finale-banner h2 .accent {
+    color: var(--blue-primary);
+    font-weight: 700;
+  }
+
+  /* replay */
+  .replay {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 20;
+    background: var(--cream);
+    color: var(--blue-dark);
+    border: 1px solid var(--blue-light);
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-family: 'Roboto Slab', Georgia, serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+  }
+  .replay:hover {
+    background: var(--blue-primary);
+    color: var(--cream);
+    border-color: var(--blue-primary);
+  }
+
+  /* stage stepping controls */
+  .step-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 20;
+    display: flex;
+    gap: 10px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+  }
+  .step-controls.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .step-btn {
+    background: var(--cream);
+    color: var(--blue-dark);
+    border: 1px solid var(--blue-light);
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-family: 'Roboto Slab', Georgia, serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .step-btn:hover:not(:disabled) {
+    background: var(--blue-primary);
+    color: var(--cream);
+    border-color: var(--blue-primary);
+  }
+  .step-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  /* ============================================================
+     WORD-POP — per-word magnify animation for card contents
+  ============================================================ */
+  .word-pop {
+    display: inline-block;
+    opacity: 0;
+    transform: scale(0.35) translateY(12px);
+    transform-origin: 50% 100%;
+    animation: wordPop 0.55s cubic-bezier(.2,1.7,.35,1) forwards;
+    will-change: transform, opacity;
+  }
+  .word-pop.bold {
+    font-weight: 700;
+    color: var(--blue-dark);
+  }
+  /* Title word gets a bigger magnify peak */
+  .card-title .word-pop {
+    animation-duration: 0.65s;
+  }
+  .card-title .word-pop.big {
+    animation-name: wordPopTitle;
+  }
+  .card-num .num-pop {
+    display: inline-block;
+    opacity: 0;
+    transform: scale(0.3) rotate(-8deg);
+    animation: numPop 0.7s cubic-bezier(.2,1.7,.35,1) forwards;
+  }
+
+  @keyframes wordPop {
+    0%   { opacity: 0;   transform: scale(0.35) translateY(12px); }
+    55%  { opacity: 1;   transform: scale(1.35) translateY(-4px); }   /* magnify peak */
+    100% { opacity: 1;   transform: scale(1) translateY(0); }
+  }
+  @keyframes wordPopTitle {
+    0%   { opacity: 0;   transform: scale(0.3) translateY(18px); }
+    55%  { opacity: 1;   transform: scale(1.5) translateY(-6px); }
+    100% { opacity: 1;   transform: scale(1) translateY(0); }
+  }
+  @keyframes numPop {
+    0%   { opacity: 0;   transform: scale(0.3) rotate(-8deg); }
+    60%  { opacity: 1;   transform: scale(1.2) rotate(2deg); }
+    100% { opacity: 1;   transform: scale(1) rotate(0); }
+  }
+
+  /* ============================================================
+     KEYFRAMES
+  ============================================================ */
+  @keyframes fadeIn { to { opacity: 1; } }
+  @keyframes letterDrop {
+    to { opacity: 1; transform: translateY(0) rotateX(0); }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- MOUNTAIN SCENE (under title) -->
+  <div class="mountain-scene" id="mountainScene">
+
+    <div class="sun"></div>
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+
+    <!-- SVG mountain range -->
+    <svg class="mountain-svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">
+      <defs>
+        <linearGradient id="mtBack" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="#a8c4dc"/>
+          <stop offset="100%" stop-color="#7b9dca"/>
+        </linearGradient>
+        <linearGradient id="mtMid" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="#6b8fba"/>
+          <stop offset="100%" stop-color="#5782bb"/>
+        </linearGradient>
+        <linearGradient id="mtFront" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="#40699f"/>
+          <stop offset="100%" stop-color="#2a4567"/>
+        </linearGradient>
+        <linearGradient id="snow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fffeec"/>
+          <stop offset="100%" stop-color="#d4e2ee"/>
+        </linearGradient>
+      </defs>
+
+      <!-- far back range -->
+      <path d="M 0 620
+               L 180 520 L 300 560 L 460 440 L 580 490
+               L 740 380 L 880 430 L 1020 350 L 1180 410
+               L 1320 300 L 1460 360 L 1600 270 L 1600 900 L 0 900 Z"
+            fill="url(#mtBack)" opacity="0.85"/>
+
+      <!-- middle range -->
+      <path d="M 0 720
+               L 120 640 L 260 680 L 400 570 L 560 620
+               L 720 510 L 860 560 L 1020 470 L 1180 520
+               L 1340 400 L 1500 450 L 1600 380 L 1600 900 L 0 900 Z"
+            fill="url(#mtMid)"/>
+
+      <!-- front range with snow caps at summit -->
+      <path d="M 0 820
+               L 80 760 L 200 790 L 340 700 L 500 740
+               L 680 620 L 840 670 L 1000 580 L 1160 630
+               L 1320 500 L 1420 260 L 1500 340 L 1600 280 L 1600 900 L 0 900 Z"
+            fill="url(#mtFront)"/>
+
+      <!-- summit snow cap -->
+      <path d="M 1360 350
+               L 1420 260 L 1450 300 L 1480 280 L 1500 340 L 1470 360
+               L 1430 330 L 1395 370 Z"
+            fill="url(#snow)" opacity="0.9"/>
+
+      <!-- lower peak highlights (snow on mid range tips) -->
+      <path d="M 700 560 L 720 510 L 735 540 Z" fill="url(#snow)" opacity="0.75"/>
+      <path d="M 1000 520 L 1020 470 L 1035 500 Z" fill="url(#snow)" opacity="0.75"/>
+      <path d="M 1320 450 L 1340 400 L 1355 430 Z" fill="url(#snow)" opacity="0.75"/>
+
+      <!-- subtle texture: foreground shadow plane -->
+      <path d="M 0 900 L 0 860 L 200 830 L 380 870 L 600 820 L 820 860
+               L 1080 800 L 1320 840 L 1600 790 L 1600 900 Z"
+            fill="#1a2d47" opacity="0.35"/>
+    </svg>
+
+    <!-- journey path connecting milestones -->
+    <svg class="journey-path" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">
+      <path id="journeyPath" d="M 140 684 Q 230 640 360 594 Q 480 540 600 504 Q 720 465 860 414 Q 1000 370 1140 324 Q 1280 285 1420 243"/>
+    </svg>
+
+    <!-- milestone markers (positioned via % of viewBox = % of container) -->
+    <div class="milestone" data-idx="0" style="left: 8.75%; top: 76%;">
+      <div class="milestone-pulse"></div>
+      <div class="milestone-dot">1</div>
+      <img class="milestone-bird" alt=""/>
+    </div>
+    <div class="milestone" data-idx="1" style="left: 22.5%; top: 66%;">
+      <div class="milestone-pulse"></div>
+      <div class="milestone-dot">2</div>
+      <img class="milestone-bird" alt=""/>
+    </div>
+    <div class="milestone" data-idx="2" style="left: 37.5%; top: 56%;">
+      <div class="milestone-pulse"></div>
+      <div class="milestone-dot">3</div>
+      <img class="milestone-bird" alt=""/>
+    </div>
+    <div class="milestone" data-idx="3" style="left: 53.75%; top: 46%;">
+      <div class="milestone-pulse"></div>
+      <div class="milestone-dot">4</div>
+      <img class="milestone-bird" alt=""/>
+    </div>
+    <div class="milestone" data-idx="4" style="left: 71.25%; top: 36%;">
+      <div class="milestone-pulse"></div>
+      <div class="milestone-dot">5</div>
+      <img class="milestone-bird" alt=""/>
+    </div>
+    <div class="milestone" data-idx="5" style="left: 88.75%; top: 27%;">
+      <div class="milestone-pulse"></div>
+      <div class="milestone-dot">6</div>
+      <img class="milestone-bird" alt=""/>
+    </div>
+
+    <!-- progress pills -->
+    <div class="progress" id="progress">
+      <div class="progress-step" data-idx="0">01 · Vision</div>
+      <div class="progress-step" data-idx="1">02 · Plan</div>
+      <div class="progress-step" data-idx="2">03 · Organization</div>
+      <div class="progress-step" data-idx="3">04 · Execution</div>
+      <div class="progress-step" data-idx="4">05 · Adoption</div>
+      <div class="progress-step" data-idx="5">06 · Success</div>
+    </div>
+
+    <!-- flying bird flock layer -->
+    <div class="bird-layer" id="birdLayer"></div>
+
+    <!-- milestone content card -->
+    <div class="card-wrap">
+      <div class="card" id="card">
+        <div class="card-num" id="cardNum">01</div>
+        <div class="card-body">
+          <div class="card-title"><span id="cardTitle">Vision</span></div>
+          <div class="card-detail" id="cardDetail">Set a clear direction on <b>WHAT</b> the problem is that you are trying to solve.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- finale banner -->
+    <div class="finale-banner" id="finaleBanner">
+      <div class="finale-text-box">
+        <h2>Production is just the start, Monitor and Evolve at the pace of your business and market.</h2>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TITLE SCENE (on top initially) -->
+  <div class="title-scene" id="titleScene">
+    <div class="title-eyebrow">A Framework for AI Project Leaders</div>
+    <h1 class="title-main" id="titleMain"></h1>
+    <div class="title-sub">From vision to scale — six milestones that separate an AI experiment from a production win.</div>
+  </div>
+
+  <div class="step-controls" id="stepControls">
+    <button class="step-btn" id="prevStep" aria-label="Go to previous stage">← Back</button>
+    <button class="step-btn" id="nextStep" aria-label="Go to next stage">Next →</button>
+  </div>
+  <button class="replay" onclick="runAnimation()">↻ Replay</button>
+</div>
+
+<script>
+/* =============================================================
+   Embedded bird image (origami bird from user's brand)
+============================================================= */
+const BIRD_SRC = "data:image/png;base64,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";
+
+// Assign the bird src to all <img> on the page that need it
+document.querySelectorAll('.milestone-bird').forEach(img => img.src = BIRD_SRC);
+
+/* =============================================================
+   TITLE — letter-by-letter reveal
+============================================================= */
+function buildTitle() {
+  const el = document.getElementById('titleMain');
+  el.innerHTML = '';
+  const words = [
+    { text: 'Drive', accent: false },
+    { text: 'your',  accent: false },
+    { text: 'AI',    accent: true  },
+    { text: 'Pilot', accent: true  },
+    { text: 'to',    accent: false },
+    { text: 'Success', accent: false }
+  ];
+  let i = 0;
+  words.forEach(w => {
+    const wordEl = document.createElement('span');
+    wordEl.className = 'word' + (w.accent ? ' accent' : '');
+    [...w.text].forEach(ch => {
+      const s = document.createElement('span');
+      s.className = 'ch';
+      s.textContent = ch;
+      s.style.animationDelay = (0.35 + i * 0.06) + 's';
+      wordEl.appendChild(s);
+      i++;
+    });
+    el.appendChild(wordEl);
+  });
+}
+
+/* =============================================================
+   MILESTONES — content
+============================================================= */
+const MILESTONES = [
+  {
+    num: "01",
+    title: "Vision",
+    detail: "Set a clear direction on <b>WHAT</b> the problem is that you are trying to solve."
+  },
+  {
+    num: "02",
+    title: "Plan",
+    detail: "Select the most important <b>business drivers</b>, measure baseline, and set targets for <b>success AND failure</b>."
+  },
+  {
+    num: "03",
+    title: "Organization",
+    detail: "Ensure there is a <b>single owner</b> across all areas: business, technology, science, and operations."
+  },
+  {
+    num: "04",
+    title: "Execution",
+    detail: "Assess ROI and viability within <b>90 days or less</b> and make a call to <b>SCALE, PIVOT, or KILL</b>."
+  },
+  {
+    num: "05",
+    title: "Adoption",
+    detail: "Technical and operational: <b>empower users</b>, <b>monitor behavior</b>, and <b>adapt</b> the system based on feedback from users and team members."
+  },
+  {
+    num: "06",
+    title: "Success",
+    detail: "Iterate and <b>evolve</b> at the pace of your business and market."
+  }
+];
+
+/* =============================================================
+   BIRD FLIGHT ENGINE
+   Each bird has {x, y, rotation}. Birds interpolate along
+   bezier curves between milestones with natural easing.
+============================================================= */
+const birdLayer = document.getElementById('birdLayer');
+
+class Bird {
+  constructor(x, y) {
+    this.el = document.createElement('div');
+    this.el.className = 'bird';
+    const img = document.createElement('img');
+    img.src = BIRD_SRC;
+    img.alt = '';
+    this.el.appendChild(img);
+    birdLayer.appendChild(this.el);
+
+    this.x = x; this.y = y;
+    this.rot = 0;
+    this.scale = 1;
+    this.flip = -1;  // -1 so bird faces the direction of travel (right); icon natively faces left
+    this.update();
+  }
+  update() {
+    this.el.style.transform =
+      `translate(${this.x}px, ${this.y}px) rotate(${this.rot}deg) scaleX(${this.flip}) scale(${this.scale})`;
+  }
+  setOffset(dx, dy) { this.offsetX = dx; this.offsetY = dy; }
+}
+
+// Convert % coords (relative to stage) → absolute px
+function pctToPx(xPct, yPct) {
+  return {
+    x: (xPct / 100) * window.innerWidth,
+    y: (yPct / 100) * window.innerHeight
+  };
+}
+
+// Milestone positions (matches CSS left/top percentages)
+const MS_POS = [
+  { x: 8.75,  y: 76 },
+  { x: 22.5,  y: 66 },
+  { x: 37.5,  y: 56 },
+  { x: 53.75, y: 46 },
+  { x: 71.25, y: 36 },
+  { x: 88.75, y: 27 }
+];
+
+function getMilestonePx(idx) {
+  return pctToPx(MS_POS[idx].x, MS_POS[idx].y);
+}
+
+// Cubic Bezier point at t
+function bezier(p0, p1, p2, p3, t) {
+  const mt = 1 - t;
+  return {
+    x: mt*mt*mt*p0.x + 3*mt*mt*t*p1.x + 3*mt*t*t*p2.x + t*t*t*p3.x,
+    y: mt*mt*mt*p0.y + 3*mt*mt*t*p1.y + 3*mt*t*t*p2.y + t*t*t*p3.y
+  };
+}
+
+// Build a nice arching bezier from a -> b.
+// Arc height is clamped so the flight never strays too far above the endpoints
+// (important for the final leg — keeps birds below the progress pill bar).
+function arcBezier(a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  // Smaller arch on final, higher-altitude flights; modest arch otherwise.
+  const arch1 = Math.min(40, 40 + a.y * 0.02);
+  const arch2 = Math.min(28, 28 + b.y * 0.02);
+  const c1 = { x: a.x + dx * 0.33, y: a.y + dy * 0.15 - arch1 };
+  const c2 = { x: a.x + dx * 0.66, y: a.y + dy * 0.85 - arch2 };
+  return [a, c1, c2, b];
+}
+
+// Ease in-out
+function easeInOut(t) { return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2; }
+
+// Animate flock from milestone `fromIdx` to `toIdx` over `duration` ms
+let flock = [];
+let animId = null;
+
+function flyFlockTo(fromIdx, toIdx, duration) {
+  return new Promise(resolve => {
+    const from = getMilestonePx(fromIdx);
+    const to   = getMilestonePx(toIdx);
+    const curve = arcBezier(from, to);
+    const start = performance.now();
+
+    // Assign each bird a small formation offset (loose V)
+    flock.forEach((b, i) => {
+      if (i === 0) { b.offsetX = 0; b.offsetY = 0; }
+      else {
+        // V formation: stagger behind & above/below leader
+        const side = (i % 2 === 0 ? -1 : 1);
+        const tier = Math.ceil(i / 2);
+        b.offsetX = -tier * 28;
+        b.offsetY = side * tier * 18 - tier * 4;
+      }
+    });
+
+    function step(now) {
+      const elapsed = now - start;
+      const t = Math.min(elapsed / duration, 1);
+      const eased = easeInOut(t);
+      const p = bezier(curve[0], curve[1], curve[2], curve[3], eased);
+
+      // direction for rotation tilt
+      const pAhead = bezier(curve[0], curve[1], curve[2], curve[3], Math.min(eased + 0.02, 1));
+      const angle = Math.atan2(pAhead.y - p.y, pAhead.x - p.x) * 180 / Math.PI;
+
+      flock.forEach((b, i) => {
+        // Gentle sine bob per bird
+        const bob = Math.sin((now / 280) + i * 0.9) * 4;
+        b.x = p.x + (b.offsetX || 0) - 27;
+        b.y = p.y + (b.offsetY || 0) - 27 + bob;
+        // Rotation: follow direction with slight damping per bird index
+        b.rot = angle * 0.35 + Math.sin((now/320) + i) * 2;
+        b.update();
+      });
+
+      if (t < 1) {
+        animId = requestAnimationFrame(step);
+      } else {
+        resolve();
+      }
+    }
+    animId = requestAnimationFrame(step);
+  });
+}
+
+// Circle formation around the summit: 2 full revolutions, then each bird
+// eases into a resting offset around the summit milestone and stays put.
+function circleSummit() {
+  return new Promise(resolve => {
+    const center = getMilestonePx(5);
+    center.y -= 30;  // lift center slightly above the summit dot
+    const radius = Math.min(window.innerWidth, window.innerHeight) * 0.13;
+    const REV_MS = 3200;            // one revolution = 3.2s → two revolutions = 6.4s
+    const REVOLUTIONS = 2;
+    const CIRCLE_MS = REV_MS * REVOLUTIONS;
+    const SETTLE_MS = 1400;         // graceful ease-out into resting spots
+    const startPhases = flock.map((_, i) => i * (Math.PI * 2 / flock.length));
+
+    // Resting positions: tight horizontal fan around the summit
+    // (kept compact vertically so the flock stays below the progress pills)
+    const restingOffsets = flock.map((_, i) => {
+      const angle = -Math.PI / 2 + (i - (flock.length - 1) / 2) * 0.52; // wider horizontal fan
+      const r = 42 + (i % 2) * 14;
+      return {
+        x: Math.cos(angle) * r,
+        y: Math.sin(angle) * r * 0.35 + 6  // mostly horizontal, slightly BELOW center
+      };
+    });
+
+    const start = performance.now();
+    let settleStart = null;
+    let lastCirclePositions = null;  // positions at moment circling ends
+
+    function step(now) {
+      const elapsed = now - start;
+
+      if (elapsed < CIRCLE_MS) {
+        // --- CIRCLING PHASE ---
+        flock.forEach((b, i) => {
+          const phase = (elapsed / REV_MS) * Math.PI * 2 + startPhases[i];
+          const rOsc = radius * (1 + 0.10 * Math.sin(elapsed / 700 + i));
+          b.x = center.x + Math.cos(phase) * rOsc - 27;
+          b.y = center.y + Math.sin(phase) * rOsc * 0.6 - 27;
+          const tx = -Math.sin(phase);
+          const ty = Math.cos(phase) * 0.6;
+          b.rot = Math.atan2(ty, tx) * 180 / Math.PI;
+          b.scale = 0.82 + 0.22 * (0.5 + 0.5 * Math.sin(phase));
+          b.update();
+        });
+        animId = requestAnimationFrame(step);
+      } else {
+        // --- SETTLE PHASE: ease from current positions to resting offsets ---
+        if (!settleStart) {
+          settleStart = now;
+          lastCirclePositions = flock.map(b => ({ x: b.x, y: b.y, rot: b.rot, scale: b.scale }));
+        }
+        const st = Math.min((now - settleStart) / SETTLE_MS, 1);
+        const eased = 1 - Math.pow(1 - st, 3);  // easeOutCubic
+
+        flock.forEach((b, i) => {
+          const from = lastCirclePositions[i];
+          const targetX = center.x + restingOffsets[i].x - 27;
+          const targetY = center.y + restingOffsets[i].y - 27;
+          b.x = from.x + (targetX - from.x) * eased;
+          b.y = from.y + (targetY - from.y) * eased;
+          b.rot = from.rot * (1 - eased) + 0 * eased;          // level out wings
+          b.scale = from.scale + (1 - from.scale) * eased;     // normalize size
+          // subtle hover bob once settled
+          if (st >= 1) {
+            b.y += Math.sin((now / 600) + i) * 2;
+          }
+          b.update();
+        });
+
+        if (st < 1) {
+          animId = requestAnimationFrame(step);
+        } else {
+          // Keep a gentle hover-bob loop going forever so it doesn't look frozen
+          function hoverLoop(t) {
+            flock.forEach((b, i) => {
+              const targetX = center.x + restingOffsets[i].x - 27;
+              const targetY = center.y + restingOffsets[i].y - 27;
+              b.x = targetX;
+              b.y = targetY + Math.sin((t / 600) + i) * 2.5;
+              b.update();
+            });
+            animId = requestAnimationFrame(hoverLoop);
+          }
+          animId = requestAnimationFrame(hoverLoop);
+          resolve();
+        }
+      }
+    }
+    animId = requestAnimationFrame(step);
+  });
+}
+
+/* =============================================================
+   CONTENT CARD UPDATES
+============================================================= */
+const cardEl      = document.getElementById('card');
+const cardNumEl   = document.getElementById('cardNum');
+const cardTitleEl = document.getElementById('cardTitle');
+const cardDetailEl= document.getElementById('cardDetail');
+
+// Split a detail HTML string into word tokens, preserving <b> emphasis.
+// Returns [{ text, bold, isSpace }]
+function splitWordsPreservingBold(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const tokens = [];
+  function walk(node, bold) {
+    if (node.nodeType === 3) { // text
+      const parts = node.textContent.split(/(\s+)/);
+      parts.forEach(p => {
+        if (p.length === 0) return;
+        if (/^\s+$/.test(p)) tokens.push({ text: ' ', bold, isSpace: true });
+        else tokens.push({ text: p, bold, isSpace: false });
+      });
+    } else if (node.nodeType === 1) {
+      const b = bold || node.tagName === 'B';
+      node.childNodes.forEach(c => walk(c, b));
+    }
+  }
+  tmp.childNodes.forEach(c => walk(c, false));
+  return tokens;
+}
+
+// Render words with staggered pop-magnify animations.
+// Returns total duration (ms) so caller can schedule follow-up.
+function renderWordPops(container, tokens, options = {}) {
+  const { baseDelay = 0, stagger = 110, bigClass = false } = options;
+  container.innerHTML = '';
+  let wordIdx = 0;
+  tokens.forEach(t => {
+    if (t.isSpace) {
+      container.appendChild(document.createTextNode(' '));
+      return;
+    }
+    const span = document.createElement('span');
+    span.className = 'word-pop' + (t.bold ? ' bold' : '') + (bigClass ? ' big' : '');
+    span.textContent = t.text;
+    span.style.animationDelay = (baseDelay + wordIdx * stagger) + 'ms';
+    container.appendChild(span);
+    wordIdx++;
+  });
+  return baseDelay + wordIdx * stagger + 550; // include animation duration
+}
+
+function revealCard(idx) {
+  const m = MILESTONES[idx];
+  cardEl.classList.remove('visible');
+  const t = setTimeout(() => {
+    // Number: animate in with its own pop
+    cardNumEl.innerHTML = '';
+    const numSpan = document.createElement('span');
+    numSpan.className = 'num-pop';
+    numSpan.textContent = m.num;
+    numSpan.style.animationDelay = '120ms';
+    cardNumEl.appendChild(numSpan);
+
+    // Title: treat as word-pop (single word, big variant)
+    const titleTokens = splitWordsPreservingBold(m.title);
+    renderWordPops(cardTitleEl, titleTokens, { baseDelay: 240, stagger: 120, bigClass: true });
+    // Preserve leading dot decoration in title
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    cardTitleEl.insertBefore(dot, cardTitleEl.firstChild);
+
+    // Detail: word-by-word pop (respects <b> tags)
+    const detailTokens = splitWordsPreservingBold(m.detail);
+    renderWordPops(cardDetailEl, detailTokens, { baseDelay: 420, stagger: 95 });
+
+    cardEl.classList.add('visible');
+  }, 180);
+  timers.push(t);
+}
+
+function updateProgress(currentIdx) {
+  document.querySelectorAll('.progress-step').forEach((s, i) => {
+    s.classList.remove('current', 'done');
+    if (i < currentIdx) s.classList.add('done');
+    if (i === currentIdx) s.classList.add('current');
+  });
+}
+
+function updateMilestoneStates(currentIdx, done = false) {
+  document.querySelectorAll('.milestone').forEach((m, i) => {
+    m.classList.remove('active', 'done', 'perched');
+    if (i < currentIdx) { m.classList.add('done'); m.classList.add('perched'); }
+    if (i === currentIdx) {
+      if (done) { m.classList.add('done'); m.classList.add('perched'); }
+      else      { m.classList.add('active'); }
+    }
+  });
+}
+
+/* =============================================================
+   MASTER TIMELINE
+============================================================= */
+const titleScene    = document.getElementById('titleScene');
+const mountainScene = document.getElementById('mountainScene');
+const progressEl    = document.getElementById('progress');
+const finaleBanner  = document.getElementById('finaleBanner');
+const stepControls  = document.getElementById('stepControls');
+const prevStepBtn   = document.getElementById('prevStep');
+const nextStepBtn   = document.getElementById('nextStep');
+const stageEl       = document.querySelector('.stage');
+
+let timers = [];
+let currentStage = 0;
+let isStepping = false;
+let autoRunId = 0;
+function clearTimers() {
+  timers.forEach(clearTimeout);
+  timers = [];
+  if (animId) cancelAnimationFrame(animId);
+  animId = null;
+}
+
+function setStepButtonsEnabled(enabled) {
+  prevStepBtn.disabled = !enabled || currentStage <= 0;
+  nextStepBtn.disabled = !enabled || currentStage >= MILESTONES.length - 1;
+}
+
+function updateStageUI(stageIdx) {
+  updateMilestoneStates(stageIdx);
+  updateProgress(stageIdx);
+  revealCard(stageIdx);
+  const isFinalStage = stageIdx === MILESTONES.length - 1;
+  finaleBanner.classList.toggle('visible', isFinalStage);
+  stageEl.classList.toggle('summit-mode', isFinalStage);
+  setStepButtonsEnabled(true);
+}
+
+function seedFirstStageBird() {
+  const m0 = getMilestonePx(0);
+  const firstBird = new Bird(m0.x - 27, m0.y - 60);
+  flock.push(firstBird);
+}
+
+async function transitionToStage(targetStage, duration) {
+  isStepping = true;
+  setStepButtonsEnabled(false);
+  clearTimers();
+
+  await flyFlockTo(currentStage, targetStage, duration);
+
+  if (targetStage > currentStage) {
+    const pos = getMilestonePx(targetStage);
+    const newbie = new Bird(pos.x - 27, pos.y - 60);
+    newbie.offsetX = 0;
+    newbie.offsetY = -40;
+    flock.push(newbie);
+  } else {
+    const removed = flock.pop();
+    if (removed) removed.el.remove();
+  }
+
+  currentStage = targetStage;
+  updateStageUI(currentStage);
+  isStepping = false;
+}
+
+async function playAutoTimeline(runId) {
+  while (runId === autoRunId && currentStage < MILESTONES.length - 1) {
+    // Pause so reader can absorb the detail text.
+    await wait(8000);
+    if (runId !== autoRunId) return;
+    await transitionToStage(currentStage + 1, 2400);
+  }
+
+  if (runId !== autoRunId || currentStage !== MILESTONES.length - 1) return;
+
+  // Preserve original finale timing and flight loop at step 6.
+  await wait(8000);
+  if (runId !== autoRunId) return;
+  finaleBanner.classList.add('visible');
+  await circleSummit();
+}
+
+function startAutoTimeline() {
+  const runId = ++autoRunId;
+  playAutoTimeline(runId);
+}
+
+async function stepStage(direction) {
+  if (isStepping) return;
+  const targetStage = currentStage + direction;
+  if (targetStage < 0 || targetStage >= MILESTONES.length) return;
+
+  // Override current auto run with a single explicit user step.
+  ++autoRunId;
+  await transitionToStage(targetStage, 1400);
+  startAutoTimeline();
+}
+
+async function runAnimation() {
+  clearTimers();
+  ++autoRunId;
+
+  // Reset
+  titleScene.classList.remove('shrunk');
+  stageEl.classList.remove('summit-mode');
+  mountainScene.classList.remove('active');
+  progressEl.classList.remove('active');
+  stepControls.classList.remove('active');
+  cardEl.classList.remove('visible');
+  finaleBanner.classList.remove('visible');
+  document.querySelectorAll('.milestone').forEach(m => m.classList.remove('active','done','perched'));
+  document.querySelectorAll('.progress-step').forEach(s => s.classList.remove('current','done'));
+  birdLayer.innerHTML = '';
+  flock = [];
+  currentStage = 0;
+  isStepping = false;
+  setStepButtonsEnabled(false);
+
+  buildTitle();
+
+  // 1) Title full-screen reveal (≈3.5s)
+  await wait(3500);
+
+  // 2) Title shrinks to top, mountain scene fades in
+  titleScene.classList.add('shrunk');
+  mountainScene.classList.add('active');
+  progressEl.classList.add('active');
+  stepControls.classList.add('active');
+  await wait(1200);
+
+  // 3) Stage 1 initializes; navigation buttons move one stage at a time.
+  seedFirstStageBird();
+  updateStageUI(currentStage);
+  startAutoTimeline();
+}
+
+function wait(ms) { return new Promise(r => { const t = setTimeout(r, ms); timers.push(t); }); }
+
+// Kick off once page loads
+window.addEventListener('load', () => {
+  // Tiny delay to let fonts settle
+  setTimeout(runAnimation, 200);
+});
+
+prevStepBtn.addEventListener('click', () => { stepStage(-1); });
+nextStepBtn.addEventListener('click', () => { stepStage(1); });
+
+// Recompute positions on resize (keeps birds in place if user resizes mid-flight; simple approach)
+window.addEventListener('resize', () => {
+  // If mid-flight, restarting gives best result; otherwise just re-position current flock at current milestone.
+  // We'll just snap birds to last active milestone for simplicity.
+  const activeIdx = [...document.querySelectorAll('.milestone')].findIndex(m => m.classList.contains('active'));
+  if (activeIdx >= 0) {
+    const pos = getMilestonePx(activeIdx);
+    flock.forEach((b, i) => {
+      b.x = pos.x - 27 + (b.offsetX || 0);
+      b.y = pos.y - 60 + (b.offsetY || 0);
+      b.update();
+    });
+  }
+});
+</script>
+</body>
+</html>
